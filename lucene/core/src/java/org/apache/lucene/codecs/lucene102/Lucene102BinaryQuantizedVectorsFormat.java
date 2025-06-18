@@ -89,7 +89,7 @@ import org.apache.lucene.index.SegmentWriteState;
  */
 public class Lucene102BinaryQuantizedVectorsFormat extends FlatVectorsFormat {
 
-  public static final byte QUERY_BITS = 4;
+  public static final byte QUERY_BITS = 8;
   public static final byte INDEX_BITS = 1;
 
   public static final String BINARIZED_VECTOR_COMPONENT = "BVEC";
@@ -128,7 +128,7 @@ public class Lucene102BinaryQuantizedVectorsFormat extends FlatVectorsFormat {
 
   @Override
   public int getMaxDimensions(String fieldName) {
-    return 1024;
+    return 4096;
   }
 
   @Override

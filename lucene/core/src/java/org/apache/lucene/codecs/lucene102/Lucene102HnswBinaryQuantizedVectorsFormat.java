@@ -138,7 +138,7 @@ public class Lucene102HnswBinaryQuantizedVectorsFormat extends KnnVectorsFormat 
 
   @Override
   public int getMaxDimensions(String fieldName) {
-    return 1024;
+    return 4096;
   }
 
   @Override

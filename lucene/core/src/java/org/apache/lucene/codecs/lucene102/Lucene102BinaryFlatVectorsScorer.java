@@ -20,7 +20,8 @@ import static org.apache.lucene.codecs.lucene102.Lucene102BinaryQuantizedVectors
 import static org.apache.lucene.index.VectorSimilarityFunction.COSINE;
 import static org.apache.lucene.index.VectorSimilarityFunction.EUCLIDEAN;
 import static org.apache.lucene.index.VectorSimilarityFunction.MAXIMUM_INNER_PRODUCT;
-import static org.apache.lucene.util.quantization.OptimizedScalarQuantizer.transposeHalfByte;
+// import static org.apache.lucene.util.quantization.OptimizedScalarQuantizer.transposeHalfByte;
+import static org.apache.lucene.util.quantization.OptimizedScalarQuantizer.transposeByte;
 
 import java.io.IOException;
 import org.apache.lucene.codecs.hnsw.FlatVectorsScorer;
@@ -37,7 +38,8 @@ import org.apache.lucene.util.quantization.OptimizedScalarQuantizer.Quantization
 /** Vector scorer over binarized vector values */
 public class Lucene102BinaryFlatVectorsScorer implements FlatVectorsScorer {
   private final FlatVectorsScorer nonQuantizedDelegate;
-  private static final float FOUR_BIT_SCALE = 1f / ((1 << 4) - 1);
+  //  private static final float FOUR_BIT_SCALE = 1f / ((1 << 4) - 1);
+  private static final float EIGHT_BIT_SCALE = 1f / ((1 << 4) - 1);
 
   public Lucene102BinaryFlatVectorsScorer(FlatVectorsScorer nonQuantizedDelegate) {
     this.nonQuantizedDelegate = nonQuantizedDelegate;
@@ -70,8 +72,9 @@ public class Lucene102BinaryFlatVectorsScorer implements FlatVectorsScorer {
       byte[] initial = new byte[target.length];
       byte[] quantized = new byte[QUERY_BITS * binarizedVectors.discretizedDimensions() / 8];
       OptimizedScalarQuantizer.QuantizationResult queryCorrections =
-          quantizer.scalarQuantize(target, initial, (byte) 4, centroid);
-      transposeHalfByte(initial, quantized);
+          quantizer.scalarQuantize(target, initial, (byte) 8, centroid);
+      //      transposeHalfByte(initial, quantized);
+      transposeByte(initial, quantized);
       return new RandomVectorScorer.AbstractRandomVectorScorer(binarizedVectors) {
         @Override
         public float score(int node) throws IOException {
@@ -159,7 +162,7 @@ public class Lucene102BinaryFlatVectorsScorer implements FlatVectorsScorer {
       VectorSimilarityFunction similarityFunction)
       throws IOException {
     byte[] binaryCode = targetVectors.vectorValue(targetOrd);
-    float qcDist = VectorUtil.int4BitDotProduct(quantizedQuery, binaryCode);
+    float qcDist = VectorUtil.int8BitDotProduct(quantizedQuery, binaryCode);
     OptimizedScalarQuantizer.QuantizationResult indexCorrections =
         targetVectors.getCorrectiveTerms(targetOrd);
     float x1 = indexCorrections.quantizedComponentSum();
@@ -167,7 +170,7 @@ public class Lucene102BinaryFlatVectorsScorer implements FlatVectorsScorer {
     // Here we assume `lx` is simply bit vectors, so the scaling isn't necessary
     float lx = indexCorrections.upperInterval() - ax;
     float ay = queryCorrections.lowerInterval();
-    float ly = (queryCorrections.upperInterval() - ay) * FOUR_BIT_SCALE;
+    float ly = (queryCorrections.upperInterval() - ay) * EIGHT_BIT_SCALE;
     float y1 = queryCorrections.quantizedComponentSum();
     float score =
         ax * ay * targetVectors.dimension() + ay * lx * x1 + ax * ly * y1 + lx * ly * qcDist;

@@ -438,6 +438,12 @@ final class PanamaVectorUtilSupport implements VectorUtilSupport {
     return res;
   }
 
+  @Override
+  public long int8BitDotProduct(byte[] q, byte[] d) {
+    assert q.length == d.length * 8;
+    return DefaultVectorUtilSupport.int8BitDotProductImpl(q, d);
+  }
+
   private int dotProductBody512Int4Packed(byte[] unpacked, byte[] packed, int limit) {
     int sum = 0;
     // iterate in chunks of 1024 items to ensure we don't overflow the short accumulator
