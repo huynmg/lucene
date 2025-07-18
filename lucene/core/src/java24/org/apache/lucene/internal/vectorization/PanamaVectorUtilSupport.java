@@ -807,6 +807,12 @@ final class PanamaVectorUtilSupport implements VectorUtilSupport {
     }
     return DefaultVectorUtilSupport.int4BitDotProductImpl(q, d);
   }
+  
+  @Override
+  public long int8BitDotProduct(byte[] q, byte[] d) {
+    assert q.length == d.length * 8;
+    return DefaultVectorUtilSupport.int8BitDotProductImpl(q, d);
+  }
 
   static long int4BitDotProduct256(byte[] q, byte[] d) {
     long subRet0 = 0;

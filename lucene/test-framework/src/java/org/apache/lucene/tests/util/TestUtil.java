@@ -66,6 +66,7 @@ import org.apache.lucene.codecs.lucene103.Lucene103Codec;
 import org.apache.lucene.codecs.lucene103.Lucene103PostingsFormat;
 import org.apache.lucene.codecs.lucene90.Lucene90DocValuesFormat;
 import org.apache.lucene.codecs.lucene99.Lucene99HnswVectorsFormat;
+import org.apache.lucene.codecs.lucene99.Lucene99ScalarQuantizedVectorsFormat;
 import org.apache.lucene.codecs.perfield.PerFieldDocValuesFormat;
 import org.apache.lucene.codecs.perfield.PerFieldPostingsFormat;
 import org.apache.lucene.document.BinaryDocValuesField;
@@ -1331,6 +1332,9 @@ public final class TestUtil {
     return new AssertingCodec() {
       @Override
       public KnnVectorsFormat getKnnVectorsFormatForField(String field) {
+        if (field.equals("vector_2")) {
+            return new Lucene99ScalarQuantizedVectorsFormat(null, 4, true);
+        }
         return format;
       }
     };

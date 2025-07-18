@@ -372,6 +372,61 @@ public class OptimizedScalarQuantizer {
   }
 
   /**
+   * Transpose the query vector into a byte array allowing for efficient bitwise operations with the
+   * index bit vectors. The idea here is to organize the query vector bits such that the first bit
+   * of every dimension is in the first set of dimensions bits, the second bit in the second set, and so on.
+   * This allows for direct bitwise comparisons with the stored index vectors through
+   * summing the bitwise results with the relative required bit shifts.
+   *
+   * <p>This method handles full byte (8-bit) quantized vectors with values between 0 and 255.
+   *
+   * @param q the query vector, assumed to be byte quantized with values between 0 and 255
+   * @param quantQueryByte the byte array to store the transposed query vector
+   */
+  public static void transposeByte(byte[] q, byte[] quantQueryByte) {
+    for (int i = 0; i < q.length; ) {
+      assert q[i] >= 0 && q[i] <= 255; // Ensure values are in valid range for a byte
+
+      // Initialize 8 bytes for each bit position
+      int bit0 = 0;
+      int bit1 = 0;
+      int bit2 = 0;
+      int bit3 = 0;
+      int bit4 = 0;
+      int bit5 = 0;
+      int bit6 = 0;
+      int bit7 = 0;
+
+      // Process 8 elements at a time (or fewer if we're at the end)
+      for (int j = 7; j >= 0 && i < q.length; j--) {
+        // Extract each bit from the current byte and place it in the corresponding bit array
+        bit0 |= (q[i] & 1) << j;         // Least significant bit
+        bit1 |= ((q[i] >> 1) & 1) << j;
+        bit2 |= ((q[i] >> 2) & 1) << j;
+        bit3 |= ((q[i] >> 3) & 1) << j;
+        bit4 |= ((q[i] >> 4) & 1) << j;
+        bit5 |= ((q[i] >> 5) & 1) << j;
+        bit6 |= ((q[i] >> 6) & 1) << j;
+        bit7 |= ((q[i] >> 7) & 1) << j;  // Most significant bit
+        i++;
+      }
+
+      // Calculate the index for the current block
+      int index = ((i + 7) / 8) - 1;
+
+      // Store each bit array in its respective section of the output array
+      quantQueryByte[index] = (byte) bit0;
+      quantQueryByte[index + quantQueryByte.length / 8] = (byte) bit1;
+      quantQueryByte[index + 2 * quantQueryByte.length / 8] = (byte) bit2;
+      quantQueryByte[index + 3 * quantQueryByte.length / 8] = (byte) bit3;
+      quantQueryByte[index + 4 * quantQueryByte.length / 8] = (byte) bit4;
+      quantQueryByte[index + 5 * quantQueryByte.length / 8] = (byte) bit5;
+      quantQueryByte[index + 6 * quantQueryByte.length / 8] = (byte) bit6;
+      quantQueryByte[index + 7 * quantQueryByte.length / 8] = (byte) bit7;
+    }
+  }
+
+  /**
    * Pack the vector as a binary array.
    *
    * @param vector the vector to pack

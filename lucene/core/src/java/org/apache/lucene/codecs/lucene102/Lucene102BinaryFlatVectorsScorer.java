@@ -21,6 +21,7 @@ import static org.apache.lucene.index.VectorSimilarityFunction.COSINE;
 import static org.apache.lucene.index.VectorSimilarityFunction.EUCLIDEAN;
 import static org.apache.lucene.index.VectorSimilarityFunction.MAXIMUM_INNER_PRODUCT;
 import static org.apache.lucene.util.quantization.OptimizedScalarQuantizer.transposeHalfByte;
+import static org.apache.lucene.util.quantization.OptimizedScalarQuantizer.transposeByte;
 
 import java.io.IOException;
 import org.apache.lucene.codecs.hnsw.FlatVectorsScorer;
@@ -38,6 +39,7 @@ import org.apache.lucene.util.quantization.OptimizedScalarQuantizer.Quantization
 public class Lucene102BinaryFlatVectorsScorer implements FlatVectorsScorer {
   private final FlatVectorsScorer nonQuantizedDelegate;
   private static final float FOUR_BIT_SCALE = 1f / ((1 << 4) - 1);
+  private static final float EIGHT_BIT_SCALE = 1f / ((1 << 8) - 1);
 
   public Lucene102BinaryFlatVectorsScorer(FlatVectorsScorer nonQuantizedDelegate) {
     this.nonQuantizedDelegate = nonQuantizedDelegate;
@@ -70,8 +72,9 @@ public class Lucene102BinaryFlatVectorsScorer implements FlatVectorsScorer {
       byte[] initial = new byte[target.length];
       byte[] quantized = new byte[QUERY_BITS * binarizedVectors.discretizedDimensions() / 8];
       OptimizedScalarQuantizer.QuantizationResult queryCorrections =
-          quantizer.scalarQuantize(target, initial, (byte) 4, centroid);
-      transposeHalfByte(initial, quantized);
+          quantizer.scalarQuantize(target, initial, (byte) 8, centroid);
+//      transposeHalfByte(initial, quantized);
+      transposeByte(initial, quantized);
       return new RandomVectorScorer.AbstractRandomVectorScorer(binarizedVectors) {
         @Override
         public float score(int node) throws IOException {
@@ -159,7 +162,7 @@ public class Lucene102BinaryFlatVectorsScorer implements FlatVectorsScorer {
       VectorSimilarityFunction similarityFunction)
       throws IOException {
     byte[] binaryCode = targetVectors.vectorValue(targetOrd);
-    float qcDist = VectorUtil.int4BitDotProduct(quantizedQuery, binaryCode);
+    float qcDist = VectorUtil.int8BitDotProduct(quantizedQuery, binaryCode);
     OptimizedScalarQuantizer.QuantizationResult indexCorrections =
         targetVectors.getCorrectiveTerms(targetOrd);
     float x1 = indexCorrections.quantizedComponentSum();

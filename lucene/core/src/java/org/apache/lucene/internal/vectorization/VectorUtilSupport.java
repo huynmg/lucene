@@ -65,6 +65,18 @@ public interface VectorUtilSupport {
    * @return the dot product
    */
   long int4BitDotProduct(byte[] int4Quantized, byte[] binaryQuantized);
+  
+  /**
+   * Compute the dot product between a quantized int8 vector and a binary quantized vector. It is
+   * assumed that the int8 quantized bits are packed in the byte array in a similar way to the int4
+   * version but with 8 bits per value, and that the binary bits are packed the same way as {@link
+   * org.apache.lucene.util.quantization.OptimizedScalarQuantizer#packAsBinary(byte[], byte[])}.
+   *
+   * @param int8Quantized byte packed int8 quantized vector
+   * @param binaryQuantized byte packed binary quantized vector
+   * @return the dot product
+   */
+  long int8BitDotProduct(byte[] int8Quantized, byte[] binaryQuantized);
 
   /**
    * Quantizes {@code vector}, putting the result into {@code dest}.
