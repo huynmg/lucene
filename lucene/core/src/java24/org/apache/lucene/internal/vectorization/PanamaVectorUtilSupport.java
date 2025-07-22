@@ -962,6 +962,12 @@ final class PanamaVectorUtilSupport implements VectorUtilSupport {
   }
 
   @Override
+  public float minMaxScalarQuantize(
+          float[] vector, int[] dest, float scale, float alpha, float minQuantile, float maxQuantile) {
+    return 0.0F;
+  }
+
+  @Override
   public float recalculateScalarQuantizationOffset(
       byte[] vector,
       float oldAlpha,

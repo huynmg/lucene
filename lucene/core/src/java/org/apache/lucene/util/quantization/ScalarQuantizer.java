@@ -132,6 +132,26 @@ public class ScalarQuantizer {
   }
 
   /**
+   * Quantize a float vector into a byte vector
+   *
+   * @param src the source vector
+   * @param dest the destination vector
+   * @param similarityFunction the similarity function used to calculate the quantile
+   * @return the corrective offset that needs to be applied to the score
+   */
+  public float quantize(float[] src, int[] dest, VectorSimilarityFunction similarityFunction) {
+    assert src.length == dest.length;
+    assert similarityFunction != VectorSimilarityFunction.COSINE || VectorUtil.isUnitVector(src);
+
+    float correction =
+            VectorUtil.minMaxScalarQuantize(src, dest, scale, alpha, minQuantile, maxQuantile);
+    if (similarityFunction.equals(VectorSimilarityFunction.EUCLIDEAN)) {
+      return 0;
+    }
+    return correction;
+  }
+
+  /**
    * Recalculate the old score corrective value given new current quantiles
    *
    * @param quantizedVector the old vector

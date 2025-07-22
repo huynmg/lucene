@@ -53,6 +53,23 @@ public class ScalarQuantizedVectorScorer implements FlatVectorsScorer {
     return scalarQuantizer.quantize(processedQuery, quantizedQuery, similarityFunction);
   }
 
+  public static float quantizeQuery(
+          float[] query,
+          int[] quantizedQuery,
+          VectorSimilarityFunction similarityFunction,
+          ScalarQuantizer scalarQuantizer) {
+    float[] processedQuery =
+            switch (similarityFunction) {
+              case EUCLIDEAN, DOT_PRODUCT, MAXIMUM_INNER_PRODUCT -> query;
+              case COSINE -> {
+                float[] queryCopy = ArrayUtil.copyArray(query);
+                VectorUtil.l2normalize(queryCopy);
+                yield queryCopy;
+              }
+            };
+    return scalarQuantizer.quantize(processedQuery, quantizedQuery, similarityFunction);
+  }
+
   private final FlatVectorsScorer nonQuantizedDelegate;
 
   public ScalarQuantizedVectorScorer(FlatVectorsScorer flatVectorsScorer) {

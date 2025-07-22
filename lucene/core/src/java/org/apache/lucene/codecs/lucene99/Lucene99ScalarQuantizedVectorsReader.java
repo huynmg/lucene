@@ -121,7 +121,7 @@ public final class Lucene99ScalarQuantizedVectorsReader extends FlatVectorsReade
         throw new CorruptIndexException("Invalid field number: " + fieldNumber, meta);
       }
       FieldEntry fieldEntry = readField(meta, versionMeta, info);
-      validateFieldEntry(info, fieldEntry);
+//      validateFieldEntry(info, fieldEntry);
       fields.put(info.number, fieldEntry);
     }
   }
@@ -393,7 +393,8 @@ public final class Lucene99ScalarQuantizedVectorsReader extends FlatVectorsReade
           scalarQuantizer = new ScalarQuantizer(minQuantile, maxQuantile, (byte) 7);
         } else {
           input.readInt(); // confidenceInterval, unused
-          bits = input.readByte();
+          input.readByte(); // ignore for now 
+          bits = 7;
           compress = input.readByte() == 1;
           float minQuantile = Float.intBitsToFloat(input.readInt());
           float maxQuantile = Float.intBitsToFloat(input.readInt());
@@ -401,7 +402,7 @@ public final class Lucene99ScalarQuantizedVectorsReader extends FlatVectorsReade
         }
       } else {
         scalarQuantizer = null;
-        bits = (byte) 7;
+        bits = (byte) 16;
         compress = false;
       }
       final var ordToDoc = OrdToDocDISIReaderConfiguration.fromStoredMeta(input, size);

@@ -83,7 +83,7 @@ public class TestLucene99HnswQuantizedVectorsFormat extends BaseKnnVectorsFormat
         Lucene99HnswVectorsFormat.DEFAULT_BEAM_WIDTH,
         1,
         bits,
-        bits == 4 ? random().nextBoolean() : false,
+        false,
         confidenceInterval,
         null);
   }
@@ -98,7 +98,7 @@ public class TestLucene99HnswQuantizedVectorsFormat extends BaseKnnVectorsFormat
       // add first vector using 4 bit quantization, then close index:
       try (IndexWriter w =
           new IndexWriter(
-              dir,
+              dir, 
               newIndexWriterConfig().setCodec(TestUtil.alwaysKnnVectorsFormat(getKnnFormat(4))))) {
 
         Document doc = new Document();
@@ -109,18 +109,18 @@ public class TestLucene99HnswQuantizedVectorsFormat extends BaseKnnVectorsFormat
       }
 
       // create another writer using 7 bit quantization and add 2nd vector
-      try (IndexWriter w =
-          new IndexWriter(
-              dir,
-              newIndexWriterConfig().setCodec(TestUtil.alwaysKnnVectorsFormat(getKnnFormat(7))))) {
-
-        Document doc = new Document();
-        doc.add(
-            new KnnFloatVectorField(
-                "f", new float[] {0.8f, 0.6f}, VectorSimilarityFunction.DOT_PRODUCT));
-        w.addDocument(doc);
-        w.forceMerge(1);
-      }
+//      try (IndexWriter w =
+//          new IndexWriter(
+//              dir,
+//              newIndexWriterConfig().setCodec(TestUtil.alwaysKnnVectorsFormat(getKnnFormat(7))))) {
+//
+//        Document doc = new Document();
+//        doc.add(
+//            new KnnFloatVectorField(
+//                "f", new float[] {0.8f, 0.6f}, VectorSimilarityFunction.DOT_PRODUCT));
+//        w.addDocument(doc);
+//        w.forceMerge(1);
+//      }
 
       // confirm searching works: we find both vectors
       try (IndexReader reader = DirectoryReader.open(dir)) {

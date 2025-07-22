@@ -114,6 +114,45 @@ public class Lucene99ScalarQuantizedVectorScorer implements FlatVectorsScorer {
     };
   }
 
+  static UpdateableRandomVectorScorer fromVectorSimilarity(
+          int[] targetBytes,
+          float offsetCorrection,
+          VectorSimilarityFunction sim,
+          float constMultiplier,
+          QuantizedByteVectorValues values) {
+    checkDimensions(targetBytes.length, values.dimension());
+    return dotProductFactory(
+                      targetBytes,
+                      offsetCorrection,
+                      constMultiplier,
+                      values,
+                      f -> Math.max((1 + f) / 2, 0));
+//    return switch (sim) {
+//      case EUCLIDEAN -> new Euclidean(values, constMultiplier, (byte[]) targetBytes);
+//      case COSINE ->
+//              dotProductFactory(
+//                      targetBytes,
+//                      offsetCorrection,
+//                      constMultiplier,
+//                      values,
+//                      f -> Math.max((1 + f) / 2, 0));
+//      case DOT_PRODUCT ->
+//              dotProductFactory(
+//                      targetBytes,
+//                      offsetCorrection,
+//                      constMultiplier,
+//                      values,
+//                      f -> Math.max((1 + f) / 2, 0));
+//      case MAXIMUM_INNER_PRODUCT ->
+//              dotProductFactory(
+//                      targetBytes,
+//                      offsetCorrection,
+//                      constMultiplier,
+//                      values,
+//                      VectorUtil::scaleMaxInnerProductScore);
+
+  }
+
   static void checkDimensions(int queryLen, int fieldLen) {
     if (queryLen != fieldLen) {
       throw new IllegalArgumentException(
@@ -138,6 +177,25 @@ public class Lucene99ScalarQuantizedVectorScorer implements FlatVectorsScorer {
     }
     return new DotProduct(
         values, constMultiplier, targetBytes, offsetCorrection, scoreAdjustmentFunction);
+  }
+
+  private static UpdateableRandomVectorScorer.AbstractUpdateableRandomVectorScorer
+  dotProductFactory(
+          int[] targetBytes,
+          float offsetCorrection,
+          float constMultiplier,
+          QuantizedByteVectorValues values,
+          FloatToFloatFunction scoreAdjustmentFunction) {
+//    if (values.getScalarQuantizer().getBits() <= 4) {
+//      if (values.getVectorByteLength() != values.dimension() && values.getSlice() != null) {
+//        return new CompressedInt4DotProduct(
+//                values, constMultiplier, targetBytes, offsetCorrection, scoreAdjustmentFunction);
+//      }
+//      return new Int4DotProduct(
+//              values, constMultiplier, targetBytes, offsetCorrection, scoreAdjustmentFunction);
+//    }
+    return new IntDotProduct(
+            values, constMultiplier, targetBytes, offsetCorrection, scoreAdjustmentFunction);
   }
 
   private static class Euclidean
@@ -168,8 +226,56 @@ public class Lucene99ScalarQuantizedVectorScorer implements FlatVectorsScorer {
   }
 
   /** Calculates dot product on quantized vectors, applying the appropriate corrections */
-  private static class DotProduct
+  private static class IntDotProduct
       extends UpdateableRandomVectorScorer.AbstractUpdateableRandomVectorScorer {
+    private final float constMultiplier;
+    private final QuantizedByteVectorValues values;
+    private final int[] targetBytes;
+    private float offsetCorrection;
+    private final FloatToFloatFunction scoreAdjustmentFunction;
+
+    public IntDotProduct(
+        QuantizedByteVectorValues values,
+        float constMultiplier,
+        int[] targetBytes,
+        float offsetCorrection,
+        FloatToFloatFunction scoreAdjustmentFunction) {
+      super(values);
+      this.constMultiplier = constMultiplier;
+      this.values = values;
+      this.targetBytes = targetBytes;
+      this.offsetCorrection = offsetCorrection;
+      this.scoreAdjustmentFunction = scoreAdjustmentFunction;
+    }
+
+    public long dotProduct(byte[] a, int[] b) {
+      long total = 0;
+      for (int i = 0; i < a.length; i++) {
+        total += a[i] * b[i];
+      }
+      return total;
+    }
+
+    @Override
+    public float score(int vectorOrdinal) throws IOException {
+      byte[] storedVector = values.vectorValue(vectorOrdinal);
+      float vectorOffset = values.getScoreCorrectionConstant(vectorOrdinal);
+      long dotProduct = dotProduct(storedVector, targetBytes);
+      // For the current implementation of scalar quantization, all dotproducts should be >= 0;
+      assert dotProduct >= 0;
+      float adjustedDistance = dotProduct * constMultiplier *32767.0F/15.0F+ offsetCorrection + vectorOffset;
+      return scoreAdjustmentFunction.apply(adjustedDistance);
+    }
+
+    @Override
+    public void setScoringOrdinal(int node) throws IOException {
+      System.arraycopy(values.vectorValue(node), 0, targetBytes, 0, targetBytes.length);
+      offsetCorrection = values.getScoreCorrectionConstant(node);
+    }
+  }
+
+  private static class DotProduct
+          extends UpdateableRandomVectorScorer.AbstractUpdateableRandomVectorScorer {
     private final float constMultiplier;
     private final QuantizedByteVectorValues values;
     private final byte[] targetBytes;
@@ -177,11 +283,11 @@ public class Lucene99ScalarQuantizedVectorScorer implements FlatVectorsScorer {
     private final FloatToFloatFunction scoreAdjustmentFunction;
 
     public DotProduct(
-        QuantizedByteVectorValues values,
-        float constMultiplier,
-        byte[] targetBytes,
-        float offsetCorrection,
-        FloatToFloatFunction scoreAdjustmentFunction) {
+            QuantizedByteVectorValues values,
+            float constMultiplier,
+            byte[] targetBytes,
+            float offsetCorrection,
+            FloatToFloatFunction scoreAdjustmentFunction) {
       super(values);
       this.constMultiplier = constMultiplier;
       this.values = values;
@@ -197,7 +303,7 @@ public class Lucene99ScalarQuantizedVectorScorer implements FlatVectorsScorer {
       int dotProduct = VectorUtil.dotProduct(storedVector, targetBytes);
       // For the current implementation of scalar quantization, all dotproducts should be >= 0;
       assert dotProduct >= 0;
-      float adjustedDistance = dotProduct * constMultiplier + offsetCorrection + vectorOffset;
+      float adjustedDistance = dotProduct * constMultiplier * 127.0F/15.0F+ offsetCorrection + vectorOffset;
       return scoreAdjustmentFunction.apply(adjustedDistance);
     }
 
@@ -245,7 +351,7 @@ public class Lucene99ScalarQuantizedVectorScorer implements FlatVectorsScorer {
       int dotProduct = VectorUtil.int4DotProductPacked(targetBytes, compressedVector);
       // For the current implementation of scalar quantization, all dotproducts should be >= 0;
       assert dotProduct >= 0;
-      float adjustedDistance = dotProduct * constMultiplier + offsetCorrection + vectorOffset;
+      float adjustedDistance = dotProduct * constMultiplier * 127.0F/15.0F + offsetCorrection + vectorOffset;
       return scoreAdjustmentFunction.apply(adjustedDistance);
     }
 
@@ -285,7 +391,7 @@ public class Lucene99ScalarQuantizedVectorScorer implements FlatVectorsScorer {
       int dotProduct = VectorUtil.int4DotProduct(storedVector, targetBytes);
       // For the current implementation of scalar quantization, all dotproducts should be >= 0;
       assert dotProduct >= 0;
-      float adjustedDistance = dotProduct * constMultiplier + offsetCorrection + vectorOffset;
+      float adjustedDistance = dotProduct * constMultiplier * 127.0F/15.0F + offsetCorrection + vectorOffset;
       return scoreAdjustmentFunction.apply(adjustedDistance);
     }
 
