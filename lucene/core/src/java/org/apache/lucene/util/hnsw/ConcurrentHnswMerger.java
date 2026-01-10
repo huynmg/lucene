@@ -38,6 +38,7 @@ public class ConcurrentHnswMerger extends IncrementalHnswGraphMerger {
 
   /**
    * @param fieldInfo FieldInfo for the field being merged
+   * @param flatMode if true, all nodes are placed on level 0 (no hierarchy)
    */
   public ConcurrentHnswMerger(
       FieldInfo fieldInfo,
@@ -45,8 +46,9 @@ public class ConcurrentHnswMerger extends IncrementalHnswGraphMerger {
       int M,
       int beamWidth,
       TaskExecutor taskExecutor,
-      int numWorker) {
-    super(fieldInfo, scorerSupplier, M, beamWidth);
+      int numWorker,
+      boolean flatMode) {
+    super(fieldInfo, scorerSupplier, M, beamWidth, flatMode);
     this.taskExecutor = taskExecutor;
     this.numWorker = numWorker;
   }

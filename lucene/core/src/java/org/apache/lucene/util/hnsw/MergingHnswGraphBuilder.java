@@ -66,9 +66,10 @@ public final class MergingHnswGraphBuilder extends HnswGraphBuilder {
       OnHeapHnswGraph initializedGraph,
       HnswGraph[] graphs,
       int[][] ordMaps,
-      BitSet initializedNodes)
+      BitSet initializedNodes,
+      boolean flatMode)
       throws IOException {
-    super(scorerSupplier, beamWidth, seed, initializedGraph);
+    super(scorerSupplier, beamWidth, seed, initializedGraph, flatMode);
     this.graphs = graphs;
     this.ordMaps = ordMaps;
     this.initializedNodes = initializedNodes;
@@ -86,6 +87,7 @@ public final class MergingHnswGraphBuilder extends HnswGraphBuilder {
    *     all vectors expected to be added to the graph in the future
    * @param initializedNodes the nodes will be initialized through the merging, if null, all nodes
    *     should be already initialized after {@link #updateGraph(HnswGraph, int[])} being called
+   * @param flatMode if true, all nodes are placed on level 0 (no hierarchy)
    * @return a new HnswGraphBuilder that is initialized with the provided HnswGraph
    * @throws IOException when reading the graph fails
    */
@@ -96,13 +98,14 @@ public final class MergingHnswGraphBuilder extends HnswGraphBuilder {
       HnswGraph[] graphs,
       int[][] ordMaps,
       int totalNumberOfVectors,
-      BitSet initializedNodes)
+      BitSet initializedNodes,
+      boolean flatMode)
       throws IOException {
     OnHeapHnswGraph graph =
         InitializedHnswGraphBuilder.initGraph(
             graphs[0], ordMaps[0], totalNumberOfVectors, beamWidth, scorerSupplier);
     return new MergingHnswGraphBuilder(
-        scorerSupplier, beamWidth, seed, graph, graphs, ordMaps, initializedNodes);
+        scorerSupplier, beamWidth, seed, graph, graphs, ordMaps, initializedNodes, flatMode);
   }
 
   @Override

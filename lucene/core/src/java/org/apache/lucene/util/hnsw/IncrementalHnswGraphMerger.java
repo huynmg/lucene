@@ -46,6 +46,7 @@ public class IncrementalHnswGraphMerger implements HnswGraphMerger {
   protected final RandomVectorScorerSupplier scorerSupplier;
   protected final int M;
   protected final int beamWidth;
+  protected final boolean flatMode;
 
   protected List<GraphReader> graphReaders = new ArrayList<>();
   protected GraphReader largestGraphReader;
@@ -68,13 +69,15 @@ public class IncrementalHnswGraphMerger implements HnswGraphMerger {
 
   /**
    * @param fieldInfo FieldInfo for the field being merged
+   * @param flatMode if true, all nodes are placed on level 0 (no hierarchy)
    */
   public IncrementalHnswGraphMerger(
-      FieldInfo fieldInfo, RandomVectorScorerSupplier scorerSupplier, int M, int beamWidth) {
+      FieldInfo fieldInfo, RandomVectorScorerSupplier scorerSupplier, int M, int beamWidth, boolean flatMode) {
     this.fieldInfo = fieldInfo;
     this.scorerSupplier = scorerSupplier;
     this.M = M;
     this.beamWidth = beamWidth;
+    this.flatMode = flatMode;
   }
 
   /**
@@ -158,7 +161,8 @@ public class IncrementalHnswGraphMerger implements HnswGraphMerger {
         graphs,
         ordMaps,
         maxOrd,
-        initializedNodes);
+        initializedNodes,
+        flatMode);
   }
 
   protected final int[][] getNewOrdMapping(
