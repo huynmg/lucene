@@ -72,7 +72,11 @@ public class IncrementalHnswGraphMerger implements HnswGraphMerger {
    * @param flatMode if true, all nodes are placed on level 0 (no hierarchy)
    */
   public IncrementalHnswGraphMerger(
-      FieldInfo fieldInfo, RandomVectorScorerSupplier scorerSupplier, int M, int beamWidth, boolean flatMode) {
+      FieldInfo fieldInfo,
+      RandomVectorScorerSupplier scorerSupplier,
+      int M,
+      int beamWidth,
+      boolean flatMode) {
     this.fieldInfo = fieldInfo;
     this.scorerSupplier = scorerSupplier;
     this.M = M;

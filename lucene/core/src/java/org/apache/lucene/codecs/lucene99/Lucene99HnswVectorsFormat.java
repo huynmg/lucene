@@ -214,7 +214,6 @@ public final class Lucene99HnswVectorsFormat extends KnnVectorsFormat {
    *     high-dimensional vectors (d >= 32).
    */
   public Lucene99HnswVectorsFormat(int maxConn, int beamWidth, boolean flatMode) {
-    System.out.println("=== LUCENE DEBUG: Lucene99HnswVectorsFormat constructor called with flatMode=" + flatMode + " ===");
     this(
         maxConn,
         beamWidth,

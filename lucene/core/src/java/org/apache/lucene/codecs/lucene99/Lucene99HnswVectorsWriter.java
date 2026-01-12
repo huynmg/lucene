@@ -723,7 +723,8 @@ public final class Lucene99HnswVectorsWriter extends KnnVectorsWriter {
         return;
       }
       this.hnswGraphBuilder =
-          HnswGraphBuilder.create(scorerSupplier, M, beamWidth, HnswGraphBuilder.randSeed, flatMode);
+          HnswGraphBuilder.create(
+              scorerSupplier, M, beamWidth, HnswGraphBuilder.randSeed, flatMode);
       this.hnswGraphBuilder.setInfoStream(infoStream);
     }
 

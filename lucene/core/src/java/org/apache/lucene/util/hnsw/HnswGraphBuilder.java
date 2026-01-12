@@ -532,16 +532,13 @@ public class HnswGraphBuilder implements HnswBuilder {
 
   private int getRandomGraphLevel(double ml, SplittableRandom random) {
     if (flatMode) {
-      System.out.println("=== FLAT MODE: Returning level 0 ===");
       return 0; // In flat mode, all nodes are on level 0
     }
     double randDouble;
     do {
       randDouble = random.nextDouble(); // avoid 0 value, as log(0) is undefined
     } while (randDouble == 0.0);
-    int level = ((int) (-log(randDouble) * ml));
-    System.out.println("=== HIERARCHICAL MODE: Returning level " + level + " ===");
-    return level;
+    return ((int) (-log(randDouble) * ml));
   }
 
   void finish() throws IOException {
